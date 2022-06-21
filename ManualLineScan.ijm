@@ -26,6 +26,7 @@
  * Version Control
  * Version 1: created by SD @ 13/02/2022
  * Version 1.1: modified by SD. fixed a bug where linescan ROIs didnt get deleted, leading to incorrect plot profiles in the next images. Version tested only in 3channel images but should work for 2 and 4 channels aswell @ 03/08/2022
+ * Version 1.2: modified by SD. added the option to use only the middle z-stack for the linescan. The output .csv file have all three channes (tested only with 3) but the final montage shown only channel 1 (need to fix this) @ 21/06/2022
  */
 
 macro "SpindleLineScans" {
@@ -35,7 +36,7 @@ macro "SpindleLineScans" {
 	channels = getNumber("How many colors/channels? (2,3 or 4)" , 3);
 	size = getNumber ("Set the size for the 'Median' filter (set to 0 for no filtering)" , 2);
 	scaleSize = getNumber("Define the length of the scale bar (um) ", 20);
-	selections = newArray("Average projection","Maximum Projection");
+	selections = newArray("Average projection","Maximum Projection","Middle z-slice");
 	Dialog.create("projection method");
     Dialog.addChoice("Choose a projection method", selections, "Average Projection");
 	Dialog.show();
@@ -123,10 +124,21 @@ macro "SpindleLineScans" {
 			if (projMethod == "Maximum Projection") {
 				run("Z Project...", "projection=[Max Intensity]");
 			}
-			else { 
+			else if (projMethod == "Average Projection") { 
 				run("Z Project...", "projection=[Average Intensity]");
 			}
+			else {
+				if(zSlices%2 == 0){
+					middleZ = zSlices / 2;
+				}
+				else {
+					middleZ = (zSlices + 1) /2 ;
+				}
+				IJ.log("Middle z-slice selected : "+middleZ);
+				run("Duplicate...", "duplicate slices="+middleZ);
+			}
 		}
+	
 		selectImage(1); // close the z-stacks image
 		close();
 		
@@ -221,9 +233,9 @@ macro "SpindleLineScans" {
 		selectImage(1);
 		run("Clear Results");
 		// to save results
-		for (c = 1; c <= nSlices; c++) {
+		for (c = 1; c <= channels; c++) {
 			Stack.setChannel(c);
-			roiManager("select", (nSlices));
+			roiManager("select", (c));
 			profile = getProfile();
 				for (i=0; i<profile.length; i++){
 					if (c==1) {setResult("X-Cord", i, i*pixelsize);}
