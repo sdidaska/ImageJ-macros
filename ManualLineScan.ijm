@@ -26,7 +26,7 @@
  * Version Control
  * Version 1: created by SD @ 13/02/2022
  * Version 1.1: modified by SD. fixed a bug where linescan ROIs didnt get deleted, leading to incorrect plot profiles in the next images. Version tested only in 3channel images but should work for 2 and 4 channels aswell @ 03/08/2022
- * Version 1.2: modified by SD. added the option to use only the middle z-stack for the linescan. The output .csv file have all three channes (tested only with 3) but the final montage shown only channel 1 (need to fix this) @ 21/06/2022
+ * Version 1.2: modified by SD. added the option to use only the middle z-stack for the linescan. The output .csv file have all three channes (tested only with 3) but the final montage shown only channel 3 (need to fix this) @ 21/06/2022
  */
 
 macro "SpindleLineScans" {
@@ -243,7 +243,7 @@ macro "SpindleLineScans" {
 					updateResults();
 				}
 		}
-		saveAs("Results", savedir+imgTitle+"_PlotProfiles.xls");
+		saveAs("Results", savedir+imgTitle+"_PlotProfiles.csv");
 
 		// get the line profile graph
 		selectImage(1);
