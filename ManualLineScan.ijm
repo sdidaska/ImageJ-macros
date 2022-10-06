@@ -27,7 +27,8 @@
  * Version 1: created by SD @ 13/02/2022
  * Version 1.1: modified by SD. fixed a bug where linescan ROIs didnt get deleted, leading to incorrect plot profiles in the next images. Version tested only in 3channel images but should work for 2 and 4 channels aswell @ 03/08/2022
  * Version 1.2: modified by SD. added the option to use only the middle z-stack for the linescan. The output .csv file have all three channes (tested only with 3) but the final montage shown only channel 3 (need to fix this) @ 21/06/2022
- */
+ * Version 1.3: modified by SD. added the option to select a ROI and meake measuremnts. Results are saved in a different .csv file with name image*_ROIMeasurements.csv. Tested only with 3-channel images @ 06/10/2022
+*/
 
 macro "SpindleLineScans" {
 	// get parameteres
@@ -42,6 +43,8 @@ macro "SpindleLineScans" {
 	Dialog.show();
     projMethod = Dialog.getChoice();
   	keepBack= getBoolean("How would you like to treat the background?", "Keep", "Subtract");
+  	intensityMeasure = getBoolean("Would you like to measure Intensities?");
+  	
 	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
 	print("\\Clear");
 	IJ.log("You have run this macro at "+dayOfMonth+ "/"+month+1+"/"+year+" at "+hour+":"+minute+":"+second);
@@ -56,7 +59,15 @@ macro "SpindleLineScans" {
 	}else {
 		bckRound = "Yes";
 	}
+	if (intensityMeasure){
+		intMeas = "Yes";
+	}else {
+		intMeas = "No";
+	}
+
+	IJ.log(intensityMeasure);
 	IJ.log("Background substraction: "+bckRound);
+	IJ.log("Selected to measure intenisties inside a ROI: "+intMeas);
 	IJ.log("Macro created by Stylianos Didaskalou. For improvemnts and corrections please send an email @ steliosdidaskalou@hotmail.com");
 	selectWindow("Log");
 	saveAs("Text", savedir+"Log.txt");
@@ -138,7 +149,8 @@ macro "SpindleLineScans" {
 				run("Duplicate...", "duplicate slices="+middleZ);
 			}
 		}
-	if (zSlices > 1){
+	
+if (zSlices > 1){
 		selectImage(1); // close the z-stacks image
 		close();
 	}
@@ -206,6 +218,21 @@ macro "SpindleLineScans" {
 		roiManager("delete"); // clear the background area from the roimanager
 		run("Select None");
 		}// if (keepBack == 0)
+		
+		if(intensityMeasure){ // if user selected to measure the Intensity, propt to draw a roi and measure
+			setTool("oval");
+			if(channels>=3){ // if channels is set to 3 or 4 draw the line the the 3rd channel (usually tub in our case) 
+			Stack.setChannel(3);
+			}else { // otherwise go to channel 2, channel 1 is usually dapi, if user wants something else can change the channels, draw line and go back to the previous channel to continue the macro
+			Stack.setChannel(2);
+			}
+			run("Set Measurements...", "area mean modal perimeter fit shape feret's integrated skewness area_fraction redirect=None decimal=3"); // can be set outside the the loop 
+			waitForUser("draw a Ellipse to se ROI");
+			run("Measure Stack...");
+			saveAs("Results", savedir+imgTitle+"_ROIMeasurmentss.csv");
+			run("Clear Results");
+			run("Select None");
+		}
 
 
 
