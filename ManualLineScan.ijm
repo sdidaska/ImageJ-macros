@@ -29,6 +29,7 @@
  * Version 1.2: modified by SD. added the option to use only the middle z-stack for the linescan. The output .csv file have all three channes (tested only with 3) but the final montage shown only channel 3 (need to fix this) @ 21/06/2022
  * Version 1.3: modified by SD. added the option to select a ROI and meake measuremnts. Results are saved in a different .csv file with name image*_ROIMeasurements.csv. Tested only with 3-channel images @ 06/10/2022
  * Version 1.4 modified by SD. ROI selection changed to automatic. A mask is created in the selected channel and then using Treshold and particle analyzed the ROI is selected. Manual corrections can be used. @07/10/2022
+ * Version 1.5 modified by SD. Fixed a minor bug when selecting not to measure intensities. The "channelMask" in line 50 were set to be -1 as default to write it in metadata @09/02/2023
 */
 
 macro "SpindleLineScans" {
@@ -46,6 +47,7 @@ macro "SpindleLineScans" {
     projMethod = Dialog.getChoice();
   	keepBack= getBoolean("How would you like to treat the background?", "Keep", "Subtract");
   	intensityMeasure = getBoolean("Would you like to measure Intensities?");
+  	channelMask = -1; // default value when selecting no intenisty measurments
   	if(intensityMeasure){
   		channelMask = getNumber("Select the channel to create the mask" , 3);
   	}
