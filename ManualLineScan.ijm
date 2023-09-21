@@ -30,15 +30,16 @@
  * Version 1.3: modified by SD. added the option to select a ROI and meake measuremnts. Results are saved in a different .csv file with name image*_ROIMeasurements.csv. Tested only with 3-channel images @ 06/10/2022
  * Version 1.4 modified by SD. ROI selection changed to automatic. A mask is created in the selected channel and then using Treshold and particle analyzed the ROI is selected. Manual corrections can be used. @07/10/2022
  * Version 1.5 modified by SD. Fixed a minor bug when selecting not to measure intensities. The "channelMask" in line 50 were set to be -1 as default to write it in metadata @09/02/2023
+ * Version 1.6 modified by SD. Added the option to save the croped image, and also not to perform the linescan - just the montage
 */
 
 macro "SpindleLineScans" {
 	// get parameteres
 	savedir = getDirectory("Select directory to save files");
-	pixelsize = getNumber("What is the pixel size (um)?", 0.112);
+	pixelsize = getNumber("What is the pixel size (um)?", 0.053);
 	channels = getNumber("How many colors/channels? (2,3 or 4)" , 3);
-	size = getNumber ("Set the size for the 'Median' filter (set to 0 for no filtering)" , 2);
-	scaleSize = getNumber("Define the length of the scale bar (um) ", 20);
+	size = getNumber ("Set the size for the 'Median' filter (set to 0 for no filtering)" , 0);
+	scaleSize = getNumber("Define the length of the scale bar (um) ", 5);
 	lineWidth = getNumber("Select the width of the line in the linescan (Just for metadata purposes need to adjust it manual)", 30);
 	selections = newArray("Average projection","Maximum Projection","Middle z-slice");
 	Dialog.create("projection method");
@@ -47,6 +48,8 @@ macro "SpindleLineScans" {
     projMethod = Dialog.getChoice();
   	keepBack= getBoolean("How would you like to treat the background?", "Keep", "Subtract");
   	intensityMeasure = getBoolean("Would you like to measure Intensities?");
+  	saveCroped = getBoolean("Would you like to save the croped Image aswell?");
+  	lineScans = getBoolean("Would you like to create the LineScans?");
   	channelMask = -1; // default value when selecting no intenisty measurments
   	if(intensityMeasure){
   		channelMask = getNumber("Select the channel to create the mask" , 3);
@@ -128,6 +131,11 @@ macro "SpindleLineScans" {
 
 		imgTitle = getTitle();
 		
+		// save the croped image
+		if (saveCroped){
+			saveAs("Tiff",savedir+imgTitle);
+		}
+		
 		// from stack to hyperstack
 		slices = nSlices;
 		zSlices = slices/channels;
@@ -178,7 +186,7 @@ if (zSlices > 1){
 
 		if (channels >= 3) { 
 			Stack.setChannel(3);
-			run("Red");	
+			run("Magenta");	
 			resetMinAndMax();		
 		}
 
@@ -261,53 +269,55 @@ if (zSlices > 1){
 			
 		}
 
-
-
-		// draw the line and add it to the roi 
-		setTool("line");
-		if(channels>=3){ // if channels is set to 3 or 4 draw the line the the 3rd channel (usually tub in our case) 
-			Stack.setChannel(3);
-		}else { // otherwise go to channel 2, channel 1 is usually dapi, if user wants something else can change the channels, draw line and go back to the previous channel to continue the macro
-			Stack.setChannel(2);
-		}
-		waitForUser("draw a line from pole to pole");
-		Roi.setPosition(1);
-		roiManager("add");
-		Roi.setPosition(2);
-		roiManager("add");
-		if(channels >=3){
-			Roi.setPosition(3);
+ 		lineScans = false; // set to true to make a line-scan, otherrwise script will be used only for montages
+		if (lineScans){
+			// draw the line and add it to the roi 
+			setTool("line");
+			if(channels>=3){ // if channels is set to 3 or 4 draw the line the the 3rd channel (usually tub in our case) 
+				Stack.setChannel(3);
+			}else { // otherwise go to channel 2, channel 1 is usually dapi, if user wants something else can change the channels, draw line and go back to the previous channel to continue the macro
+				Stack.setChannel(2);
+			}
+			waitForUser("draw a line from pole to pole");
+			Roi.setPosition(1);
 			roiManager("add");
-		}
-		if(channels==4){
-			Roi.setPosition(4);
+			Roi.setPosition(2);
 			roiManager("add");
-		}
+			if(channels >=3){
+				Roi.setPosition(3);
+				roiManager("add");
+			}
+			if(channels==4){
+				Roi.setPosition(4);
+				roiManager("add");
+			}
+	
+			// get the profile for each channel and append it to the results table
+			selectImage(1);
+			run("Clear Results");
+			// to save results
+			for (c = 1; c <= channels; c++) {
+				Stack.setChannel(c);
+				roiManager("select", (c));
+				profile = getProfile();
+					for (i=0; i<profile.length; i++){
+						if (c==1) {setResult("X-Cord", i, i*pixelsize);}
+			 			setResult("Value"+c, i, profile[i]);
+						updateResults();
+					}
+			}
+			saveAs("Results", savedir+imgTitle+"_PlotProfiles.csv");
+	
+			// get the line profile graph
+			selectImage(1);
+			roiIndx = newArray(channels);
+			for(i=0; i<roiIndx.length; i++){
+				roiIndx[i] = i+1;
+			}
+			roiManager("Select",roiIndx);
+			roiManager("Multi Plot");
+		} // if (lineScans) ends here
 
-		// get the profile for each channel and append it to the results table
-		selectImage(1);
-		run("Clear Results");
-		// to save results
-		for (c = 1; c <= channels; c++) {
-			Stack.setChannel(c);
-			roiManager("select", (c));
-			profile = getProfile();
-				for (i=0; i<profile.length; i++){
-					if (c==1) {setResult("X-Cord", i, i*pixelsize);}
-		 			setResult("Value"+c, i, profile[i]);
-					updateResults();
-				}
-		}
-		saveAs("Results", savedir+imgTitle+"_PlotProfiles.csv");
-
-		// get the line profile graph
-		selectImage(1);
-		roiIndx = newArray(channels);
-		for(i=0; i<roiIndx.length; i++){
-			roiIndx[i] = i+1;
-		}
-		roiManager("Select",roiIndx);
-		roiManager("Multi Plot");
 
 		//prepare images for the montage
 		// 1st row of the montage
@@ -324,63 +334,69 @@ if (zSlices > 1){
 		selectWindow("RGB (RGB)");
 		if(scaleSize>0){
 		// add a scale bar to the RGB image
-		run("Scale Bar...", "width="+scaleSize+" height=4 font=15 color=White background=None location=[Lower Right] bold overlay");
+		run("Scale Bar...", "width="+scaleSize+" height=4 font=30 color=White background=None location=[Lower Right] bold overlay");
 		run("Flatten");
 		selectWindow("RGB (RGB)");
 		run("Close");
 		}
-
-		//2nd row of the montage
-		selectImage("C1-stack");
-		roiManager("select", 1);
-		run("Flatten");
-		
-
-		selectImage("C2-stack");
-		roiManager("select", 2);
-		run("Flatten");
-		
-
-		if(channels>=3){
-			selectImage("C3-stack");
-			roiManager("select", 3);
+		
+		if (lineScans) { 
+			//2nd row of the montage
+			selectImage("C1-stack");
+			roiManager("select", 1);
 			run("Flatten");
 			
-		}
-		if(channels==4){
-			selectImage("C4-stack");
-			roiManager("select", 4);
+	
+			selectImage("C2-stack");
+			roiManager("select", 2);
 			run("Flatten");
 			
-		}
+	
+			if(channels>=3){
+				selectImage("C3-stack");
+				roiManager("select", 3);
+				run("Flatten");
+				
+			}
+			if(channels==4){
+				selectImage("C4-stack");
+				roiManager("select", 4);
+				run("Flatten");
+				
+			}
 
 
-		selectImage("Profiles");
-		run("Duplicate...", "title=Profile duplicate");
-		selectImage("Profiles");
-		run("Close");
+			selectImage("Profiles");
+			run("Duplicate...", "title=Profile duplicate");
+			selectImage("Profiles");
+			run("Close");
+		} //if(lineScans) ends here
+		
 		run("Images to Stack", "method=[Scale (smallest)] name=Stack title=[] use");
-		run("Make Montage...", "columns="+channels+1+" rows=2 scale=1 border=1");
+		if(lineScans){
+			run("Make Montage...", "columns="+channels+1+" rows=2 scale=1 border=1");
+		}
+		else {
+			run("Make Montage...", "columns="+channels+1+" rows=1 scale=1 border=1");
+
+		}
+		
 		saveAs("Tiff", savedir+imgTitle+"_Montage.tiff");
 		run("Close All");
 		
 		// clear roi manager except the 1st roi that stores the area for croping
-		n = roiManager("count");
-		roiIndxs = newArray(n-1);
-		for (i = 0; i < n-1 ; i++) {
-			roiIndxs[i] = i + 1;
+		if(lineScans){
+			n = roiManager("count");
+			roiIndxs = newArray(n-1);
+			for (i = 0; i < n-1 ; i++) {
+				roiIndxs[i] = i + 1;
+			}
+			roiManager("select", roiIndxs);
+			roiManager("delete");
 		}
-		roiManager("select", roiIndxs);
-		roiManager("delete");
 
 	}while(true)
 	
-
-
-
-
-
-
 
 	
 }

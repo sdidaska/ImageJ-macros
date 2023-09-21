@@ -29,10 +29,10 @@ macro "Montage" {
 
 	//define parameters
 	savedir = getDirectory("Select directory to save files");
-	pixelsize = getNumber("What is the pixel size (um)?", 0.112);
+	pixelsize = getNumber("What is the pixel size (um)?", 0.053);
 	channels = getNumber("How many colors/channels? (2,3 or 4)" , 3);
 	size = getNumber ("Set the size for the 'Median' filter (set to 0 for no filtering)" , 0);
-	scaleSize = getNumber("Define the length of the scale bar (um) ", 20);
+	scaleSize = getNumber("Define the length of the scale bar (um) ", 5);
 	
 	selections = newArray("Average projection","Maximum Projection");
 	Dialog.create("projection method");
@@ -139,16 +139,22 @@ macro "Montage" {
 		// prepare channels for montage
 		Stack.setChannel(1);
 		run("Blue");
-		resetMinAndMax();
-
+		//resetMinAndMax();
+		setMinAndMax(100, 10000);
+		run("Apply LUT", "stack");
+		
 		Stack.setChannel(2);
 		run("Green");
-		resetMinAndMax();
+		//resetMinAndMax();
+		setMinAndMax(100, 2000);
+		run("Apply LUT", "stack");
 
 		if (channels >= 3) { 
 			Stack.setChannel(3);
-			run("Red");	
-			resetMinAndMax();		
+			run("Magenta");	
+			//resetMinAndMax();	
+			setMinAndMax(200, 20000);	
+			run("Apply LUT", "stack");
 		}
 
 		if (channels == 4) {
@@ -208,7 +214,7 @@ macro "Montage" {
 		close();
 		selectWindow("RGB (RGB)");
 		// add a scale bar 
-		run("Scale Bar...", "width="+scaleSize+" height=4 font=15 color=White background=None location=[Lower Right] bold overlay");
+		run("Scale Bar...", "width="+scaleSize+" height=4 font=30 color=White background=None location=[Lower Right] bold overlay");
 		run("Flatten");
 		selectWindow("RGB (RGB)");
 		run("Close");
