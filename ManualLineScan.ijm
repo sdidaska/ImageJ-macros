@@ -250,12 +250,23 @@ if (zSlices > 1){
 			roiManager("select", 1);
 			
 			keepSelection= getBoolean("Is selection OK?", "Yes", "No");
+			
 			if (!keepSelection) {
-				roiManager("delete");
-				setTool("oval");
-				Stack.setChannel(channelMask);
-				waitForUser("draw a Ellipse to se ROI");
-				roiManager("add");
+				n = roiManager("count");
+				if (n > 2){
+					roiIdx = newArray(n - 1);
+					for (i = 0; i < n-1 ; i++) {
+						roiIdx[i] = i + 1;
+						}
+						roiManager("select", roiIdx);
+				} // if(n > 2) 
+				
+					roiManager("delete");
+					setTool("ellipse");
+					Stack.setChannel(channelMask);
+					waitForUser("draw a Ellipse to se ROI");
+					roiManager("add");
+				
 			}
 			
 			run("Set Measurements...", "area mean modal perimeter fit shape feret's integrated skewness area_fraction redirect=None decimal=3"); // can be set outside the the loop 
@@ -269,7 +280,6 @@ if (zSlices > 1){
 			
 		}
 
- 		lineScans = false; // set to true to make a line-scan, otherrwise script will be used only for montages
 		if (lineScans){
 			// draw the line and add it to the roi 
 			setTool("line");
