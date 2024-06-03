@@ -1,5 +1,7 @@
 
 macro "SpindleLineScans" {
+	// version 2.0 - Minor corrections to handle the 4th channel
+	//Version 1.0
 	// get parameteres
 	savedir = getDirectory("Select directory to save files");
 	pixelsize = getNumber("What is the pixel size (um)?", 0.053);
@@ -88,7 +90,7 @@ macro "SpindleLineScans" {
 
 		if (channels >= 3) { 
 			Stack.setChannel(3);
-			run("Magenta");	
+			run("red");	
 			resetMinAndMax();		
 			}
 
@@ -122,6 +124,13 @@ macro "SpindleLineScans" {
 		Stack.setChannel(3);
 		Background = getResult("Mean", 2);
 		run("Subtract...", "value="+Background+ " slice");
+		
+		if (channels == 4){
+			Stack.setChannel(4);
+			Background = getResult("Mean", 3);
+			run("Subtract...", "value="+Background+ " slice");
+		}
+
 
 		run("Clear Results");
 		
