@@ -90,7 +90,7 @@ macro "SpindleLineScans" {
 
 		if (channels >= 3) { 
 			Stack.setChannel(3);
-			run("red");	
+			run("Red");	
 			resetMinAndMax();		
 			}
 

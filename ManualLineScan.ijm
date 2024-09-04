@@ -280,7 +280,8 @@ if (zSlices > 1){
 			
 		}
 
-		if (lineScans){
+
+		if (lineScans){
 			// draw the line and add it to the roi 
 			setTool("line");
 			if(channels>=3){ // if channels is set to 3 or 4 draw the line the the 3rd channel (usually tub in our case) 
@@ -349,7 +350,8 @@ if (zSlices > 1){
 		selectWindow("RGB (RGB)");
 		run("Close");
 		}
-		
+
+		
 		if (lineScans) { 
 			//2nd row of the montage
 			selectImage("C1-stack");
